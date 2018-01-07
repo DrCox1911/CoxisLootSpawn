@@ -1,0 +1,4 @@
+name=Coxis Loot Spawn
+id=CoxisLootSpawn
+require=CoxisUtil
+description=Mod to further alter the loot spawn
