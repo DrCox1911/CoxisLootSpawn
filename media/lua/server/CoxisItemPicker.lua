@@ -104,19 +104,56 @@ CoxisLootSpawn.rollItem = function(containerDist, container, doItemContainer, ch
   	end
 end
 
+CoxisLootSpawn.rollContainerItem = function(bag, character, containerDist)
+    if containerDist then
+        local zombieDensity = 0;
+        local chunk = nil;
+        if ItemPicker.player ~= nil then
+            chunk = getWorld():getMetaChunk((ItemPicker.player:getX()/10), (ItemPicker.player:getY()/10));
+        end
+        if chunk then
+            zombieDensity = chunk:getLootZombieIntensity();
+        end
+        if zombieDensity > ItemPicker.zombieDensityCap then
+            zombieDensity = ItemPicker.zombieDensityCap;
+        end
+        local alt = false;
+        local itemname = nil;
+        for m = 1, containerDist.rolls do
+            for i, k in ipairs(containerDist.items) do
+                if not alt then -- first we take the name of the item
+                    itemname = k;
+                else -- next step is the random spawn part
+                    local lootModifier = CoxisLootSpawn.getLootModifier(itemname) or 0.6;
+                    if ZombRand(10000) <= ((((k*100) * lootModifier) + (zombieDensity * 10))) then
+                        -- make an item in the container of that type
+                        local item = ItemPicker.tryAddItemToContainer(bag:getItemContainer(), itemname);
+                        if not item then return end
+                        if instanceof(item, "Key") then
+                            item:takeKeyId();
+                            item:setName("Key " .. item:getKeyId());
+                        end
+                        item:setAutoAge();
+                    end
+                end
+                alt = not alt;
+            end
+        end
+    end
+end
+
 CoxisLootSpawn.getLootModifier = function(itemname)
   local item = ScriptManager.instance:FindItem(itemname)
-  print("itemname: " .. tostring(itemname));
     if not item then return; end
     local lootModifier = ZomboidGlobals.OtherLootModifier;
     local specialModifier = CoxisUtil.tableContainsKey(CoxisLootSpawn.coxisDistribution["SPECIALITEMS"], itemname);
     if specialModifier ~= nil then
-      CoxisUtil.printDebug("CoxisLootSpawn", "Found specialModifier: "..tostring(specialModifier));
+      -- CoxisUtil.printDebug("CoxisLootSpawn", "Found specialModifier: "..tostring(specialModifier));
       return specialModifier
     end
     local categoryModifier = CoxisUtil.tableContainsKey(CoxisLootSpawn.coxisDistribution["CATEGORIES"], item:getTypeString());
     if categoryModifier ~= nil then
-        CoxisUtil.printDebug("CoxisLootSpawn", "Found categoryModifier: "..tostring(categoryModifier));
+        -- CoxisUtil.printDebug("CoxisLootSpawn", "Found categoryModifier: "..tostring(categoryModifier));
         return categoryModifier
     end
     if item:getTypeString() == "Food" then
@@ -125,14 +162,13 @@ CoxisLootSpawn.getLootModifier = function(itemname)
     if item:getTypeString() == "Weapon" or item:getTypeString() == "WeaponPart" or item:getDisplayCategory() == "Ammo" then
         lootModifier = ZomboidGlobals.WeaponLootModifier;
     end
-    CoxisUtil.printDebug("CoxisLootSpawn", "Found no CoxisLootSpawn value, so using Sandbox setting: "..tostring(lootModifier));
+    -- CoxisUtil.printDebug("CoxisLootSpawn", "Found no CoxisLootSpawn value, so using Sandbox setting: "..tostring(lootModifier));
     return lootModifier;
 end
 
 CoxisLootSpawn.readCoxisDistribution = function()
   CoxisUtil.printDebug("CoxisLootSpawn", "Trying to load CoxisDistribution...")
   CoxisLootSpawn.coxisDistribution = CoxisUtil.readINI("CoxisLootSpawn", "CoxisDistribution.ini");
-  print(tostring(CoxisLootSpawn.coxisDistribution["CATEGORIES"]["Food"]));
   --if next(CoxisLootSpawn.coxisDistribution) then
   --  CoxisUtil.printDebug("CoxisLootSpawn", "Error loading CoxisDistribution!");
   --end
@@ -142,12 +178,14 @@ CoxisLootSpawn.initSP = function()
   if not isClient() and not isServer() then
   CoxisLootSpawn.readCoxisDistribution();
   ItemPicker.rollItem = CoxisLootSpawn.rollItem;
+  ItemPicker.rollContainerItem = CoxisLootSpawn.rollContainerItem;
 end
 
 CoxisLootSpawn.initMP = function()
   if isServer() then
     CoxisLootSpawn.readCoxisDistribution();
     ItemPicker.rollItem = CoxisLootSpawn.rollItem;
+    ItemPicker.rollContainerItem = CoxisLootSpawn.rollContainerItem;
   end
 end
 
