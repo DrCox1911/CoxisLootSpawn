@@ -176,9 +176,10 @@ end
 
 CoxisLootSpawn.initSP = function()
   if not isClient() and not isServer() then
-  CoxisLootSpawn.readCoxisDistribution();
-  ItemPicker.rollItem = CoxisLootSpawn.rollItem;
-  ItemPicker.rollContainerItem = CoxisLootSpawn.rollContainerItem;
+    CoxisLootSpawn.readCoxisDistribution();
+    ItemPicker.rollItem = CoxisLootSpawn.rollItem;
+    ItemPicker.rollContainerItem = CoxisLootSpawn.rollContainerItem;
+  end
 end
 
 CoxisLootSpawn.initMP = function()
